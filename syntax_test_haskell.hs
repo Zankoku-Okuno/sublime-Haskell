@@ -105,10 +105,14 @@
 -- ^^^^^^^^ meta.deriving.haskell
 
 
-deriving stock    Foo
+deriving stock Foo
+--       ^^^^^ keyword.other.haskell
+
 deriving anyclass Foo
-deriving newtype  Foo
---       ^^^^^^^^ keyword.other.haskell
+--       ^^^^^^^ keyword.other.haskell
+
+deriving newtype Foo
+--       ^^^^^^^ keyword.other.haskell
 
 deriving Foo via Const Bar
 deriving (Foo) via (Const Identity)
@@ -144,11 +148,59 @@ deriving (Foo,
 
    a a = 2 `add1` 2
 --     ^ keyword.operator.haskell
---         ^    ^ punctuation.definition.entity.haskell
+--         ^      punctuation.definition.entity.haskell
 --          ^^^^  keyword.operator.function.infix.haskell
+--              ^ punctuation.definition.entity.haskell
 
 
    a a = 2 `Int.add` 2
 --     ^ keyword.operator.haskell
 --         ^       ^ punctuation.definition.entity.haskell
 --          ^^^^^^^  keyword.operator.function.infix.haskell
+
+--
+-- module names vs. constructor names
+--
+
+foo = Foo
+--    ^^^ constant.other.haskell
+
+foo = Module.Inner.Ctor
+--    ^^^^^^ support.other.module.haskell
+--           ^^^^^ support.other.module.haskell
+--                 ^^^^ constant.other.haskell
+
+foo = Module.Inner.function
+--    ^^^^^^ support.other.module.haskell
+--           ^^^^^ support.other.module.haskell
+
+foo = Ctor . var
+--    ^^^^ constant.other.haskell
+--         ^ keyword.operator.haskell
+
+
+   quant :: forall x y. x -> Int
+--          ^^^^^^ keyword.other.forall.haskell
+--                    ^ keyword.other.forall.haskell
+
+   quant :: forall x, y. -> Int
+-- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ meta.function.type-declaration.haskell
+-- ^^^^^ entity.name.function.haskell
+--                  ^ invalid.illegal.comma-in-forall.haskell
+
+
+--
+-- Quasi-quotation
+--
+
+a = [quasi0'| hello |]
+a = [Int.quasi0'| hello |]
+a = [| hello |]
+
+ml_string = "Hello \
+            \world\
+            \!"
+
+bad_string = "hello
+
+asdf

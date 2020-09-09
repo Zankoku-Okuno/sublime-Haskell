@@ -24,7 +24,7 @@ contexts:
           pop: true
         - include: module_name
         - include: module_exports
-        - match: "[a-z]+"
+        - match: "[a-z_]+"
           scope: invalid
     - match: \b(class)\b
       captures:
@@ -35,9 +35,9 @@ contexts:
           captures:
             1: keyword.other.haskell
           pop: true
-        - match: "[A-Z][A-Za-z_']*"
+        - match: '[A-Z][[:alnum:]_'']*'
           scope: entity.other.inherited-class.haskell
-        - match: '\b[a-z][a-zA-Z0-9_'']*\b'
+        - match: '\b[a-z_][[:alnum:]_'']*\b'
           scope: variable.other.generic-type.haskell
     - match: \b(instance)\b
       captures:
@@ -72,12 +72,12 @@ contexts:
           # if so, what grammatical categories should go here?
           captures:
             1: keyword.other.haskell
-        - match: '\b[A-Z][a-zA-Z_'']*'
+        - match: '\b[A-Z][[:alnum:]_'']*'
           scope: entity.other.inherited-class.haskell
         - match: '\('
           push:
             - meta_scope: meta.deriving.list.haskell
-            - match: '\b[A-Z][a-zA-Z_'']*'
+            - match: '\b[A-Z][[:alnum:]_'']*'
               scope: entity.other.inherited-class.haskell
             - match: '\)'
               pop: true
@@ -90,6 +90,8 @@ contexts:
     - match: '\binfix[lr]?\b'
       scope: keyword.operator.haskell
     - match: \b(do|if|then|else)\b
+      scope: keyword.control.haskell
+    - match: \b(mdo|rec)\b
       scope: keyword.control.haskell
     - match: '\b([0-9]+\.[0-9]+([eE][+-]?[0-9]+)?|[0-9]+[eE][+-]?[0-9]+)\b'
       comment: Floats are always decimal
@@ -106,8 +108,20 @@ contexts:
       scope: punctuation.definition.string.begin.haskell
       push:
         - meta_scope: string.quoted.double.haskell
-        - match: $|"
+        - match: '\\$'
+          scope: constant.character.escape.linebreak.haskell
+          push:
+            - match: ^\s*\\
+              scope: constant.character.escape.linebreak.haskell
+              pop: true
+            - match: ^\s*.?
+              scope: invalid.illegal.linebreak-in-string.haskell
+              pop: true
+        - match: '"'
           scope: punctuation.definition.string.end.haskell
+          pop: true
+        - match: '\n'
+          scope: invalid.illegal.unterminated-string.haskell
           pop: true
         - match: '\\(NUL|SOH|STX|ETX|EOT|ENQ|ACK|BEL|BS|HT|LF|VT|FF|CR|SO|SI|DLE|DC1|DC2|DC3|DC4|NAK|SYN|ETB|CAN|EM|SUB|ESC|FS|GS|RS|US|SP|DEL|[abfnrtv\\\"''\&])'
           scope: constant.character.escape.haskell
@@ -134,7 +148,7 @@ contexts:
     - match: \$\(
       comment: Highlight the beginning of a splice.
       scope: keyword.other.splice.haskell
-    - match: '\[[a-zA-Z0-9_'']*\|'
+    - match: '\[(?:(?:[A-Z][[:alnum:]_]*\.)*[a-z_][[:alnum:]_'']*)?\|'
       scope: keyword.other.quasibracket.haskell
       push:
         - meta_scope: meta.other.quasiquote.haskell
@@ -166,26 +180,27 @@ contexts:
         4: constant.character.escape.hexadecimal.haskell
         5: constant.character.escape.control.haskell
         6: punctuation.definition.string.end.haskell
-    - match: '^\s*([a-z_][a-zA-Z0-9_'']*|\([|!%$+\-.,=</>]+\))\s*(::|∷)'
+    - match: '^\s*([a-z_][[:alnum:]_'']*|\([|!%$+\-.,=</>]+\))\s*(::|∷)'
       captures:
         1: entity.name.function.haskell
         2: keyword.other.double-colon.haskell
       push:
         - meta_scope: meta.function.type-declaration.haskell
         - match: |-
-            (?x)
+            (?x)(?=
                 ^(data|newtype|type|class|deriving)\s  # When a top level declaration starts
-              | ^[^=]*(=)[\sa-zA-Z0-9_\(]                # A function declaration
-          captures:
-            1: keyword.other.haskell
-            2: keyword.operator.haskell
+              | ^[^=]*(=)[\s[:alpha:]_0-9\(]           # A function definition
+              | ^[^:∷]*(::|∷)[\s[:alpha:]_0-9\(]                        # A type declaration
+            )
           pop: true
         - include: type_signature
-    - match: '\b[A-Z]\w*\b'
+    - match: '\b[A-Z][[:alnum:]_]*(?=\.)'
+      scope: support.other.module.haskell
+    - match: '\b[A-Z][[:alnum:]_'']*(?!\.)'
       scope: constant.other.haskell
     - include: comments
     - include: infix_op
-    - match: '[|!%$?~+:\-.=</>\\]+'
+    - match: '[|!@%$?~+:\-.=</>\\]+'
       comment: In case this regex seems overly general, note that Haskell permits the definition of new operators which can be nearly any string of punctuation characters, such as $%^&*.
       scope: keyword.operator.haskell
     - match: ","
@@ -205,15 +220,38 @@ contexts:
           scope: punctuation.definition.comment.end.haskell
           pop: true
   comments:
+    - match: '--\^'
+      scope: invalid.illegal.docstring-as-operator.haskell
+    - match: '--\s*(\||\^)'
+      captures:
+        1: keyword.other.haskell
+      comment: |
+        I'm not sure why I have to push just the meta scope first, only to pop it
+        immediately after the next contexts return, but hey, at least it works...?
+      push:
+        - - meta_scope: comment.line.documentation.haskell
+          - match: (?=.?)
+            pop: true
+        - - match: '^\s*--'
+            push: line_comment_body
+          # TODO what exactly _are_ the rules for when a haddock comment stops?
+          - match: ^\s*$
+            comment: blank lines do not stop the documentation
+          - match: (?=^.?)
+            comment: exit as soon as a non-comment line is seen
+            pop: true
+        - line_comment_body
     - match: '--'
       scope: punctuation.definition.comment.haskell
-      push:
-        - meta_scope: comment.line.double-dash.haskell
-        - match: $\n?
-          pop: true
+      push: line_comment_body
+    # FIXME block comment documentation
     - include: block_comment
+  line_comment_body:
+    - meta_scope: comment.line.double-dash.haskell
+    - match: $\n?
+      pop: true
   infix_op:
-    - match: \([-+*/,|!%$:.=<>]+\)
+    - match: '\([-+*/,|!@$%?:.=<>]+\)'
       scope: entity.name.function.infix.haskell
   module_exports:
     - match: \(
@@ -221,38 +259,63 @@ contexts:
         - meta_scope: meta.declaration.exports.haskell
         - match: \)
           pop: true
-        - match: '\b[a-z][a-zA-Z_''0-9]*'
+        - match: '\b[a-z_][[:alnum:]_'']*'
           scope: entity.name.function.haskell
-        - match: '\b[A-Z][A-Za-z_''0-9]*'
+        - match: '\b[A-Z][[:alnum:]_'']*'
           scope: storage.type.haskell
         - match: ","
           scope: punctuation.separator.comma.haskell
+        - match: \((\.\.)\)
+          captures:
+            1: keyword.other.haskell
         - include: infix_op
-        - match: \(.*?\)
-          comment: So named because I don't know what to call this.
-          scope: meta.other.unknown.haskell
+        - match: \(
+          push:
+            - match: '\b[a-z_][[:alnum:]_'']*\b'
+              scope: entity.name.function.haskell
+            - match: '\b[A-Z][[:alnum:]_'']*\b'
+              scope: entity.name.constant.haskell
+            - match: \)
+              pop: true
+        - match: '^\s*--\s*(\*\*?(?!\*))\s*(.*?)\s*$'
+          captures:
+            1: keyword.other.haskell
+            2: entity.name.section.haskell
+          scope: comment.line.documentation.haskell
         - include: comments
   module_name:
-    - match: "[A-Z][A-Za-z._']*"
+    - match: "[A-Z][[:alnum:]_']*"
       scope: support.other.module.haskell
   pragma:
-    - match: '\{-#'
+    - match: '\{-#(?:\s*(?i:(LANGUAGE|OPTIONS_GHC|INCLUDE|WARNING|DEPRECATED|MINIMAL|UNPACK|NOUNPACK|SOURCE|OVERLAPPING|OVERLAPPABLE|OVERLAPS|INCOHERENT|INLINE|NOINLINE|INLINABLE|CONLIKE|LINE|RULES|SPECIALIZE|SPECIALISE))\b)'
+      # https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#pragmas
+      captures:
+        1: keyword.other.preprocessor.haskell
       push:
         - meta_scope: meta.preprocessor.haskell
         - match: '#-\}'
           pop: true
-        - match: \b(LANGUAGE|OPTIONS_GHC|INCLUDE|WARNING|DEPRECATED|MINIMAL|UNPACK|NOUNPACK|SOURCE|OVERLAPPING|OVERLAPPABLE|OVERLAPS|INCOHERENT|INLINE|NOINLINE|INLINABLE|CONLIKE|LINE|RULES|SPECIALIZE|SPECIALISE)\b
-          # https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#pragmas
-          scope: keyword.other.preprocessor.haskell
   type_signature:
     - include: pragma
+    - match: forall|∀
+      scope: keyword.other.forall.haskell
+      push:
+        - match: '\b[a-z_][[:alnum:]_'']*\b'
+          scope: variable.other.generic-type.haskell
+        - match: '\b[A-Z][[:alnum:]_'']\b'
+          scope: invalid.illegal.non-variable-in-forall.haskell
+        - match: ','
+          scope: invalid.illegal.comma-in-forall.haskell
+        - match: \.
+          scope: keyword.other.forall.haskell
+          pop: true
     - match: "(->|→)"
       scope: keyword.other.arrow.haskell
     - match: "(=>|⇒)"
       scope: keyword.other.big-arrow.haskell
-    - match: '\b[a-z][a-zA-Z0-9_'']*\b'
+    - match: '\b[a-z_][[:alnum:]_'']*\b'
       scope: variable.other.generic-type.haskell
-    - match: '\b[A-Z][a-zA-Z0-9_'']*\b'
+    - match: '\b[A-Z][[:alnum:]_'']*\b'
       scope: storage.type.haskell
     - match: \(\)
       scope: storage.type.haskell
