@@ -90,6 +90,34 @@
 --           ^ keyword.operator.haskell
 
 --
+-- deriving
+--
+
+   deriving Foo
+-- ^^^^^^^^^^^^ meta.deriving.haskell
+-- ^^^^^^^^ keyword.other.haskell
+--          ^^^ entity.other.inherited-class.haskell
+
+
+   deriving ( Foo
+-- ^^^^^^^^^^^^^^ meta.deriving.haskell
+    , Bar )
+-- ^^^^^^^^ meta.deriving.haskell
+
+
+deriving stock    Foo
+deriving anyclass Foo
+deriving newtype  Foo
+--       ^^^^^^^^ keyword.other.haskell
+
+deriving Foo via Const Bar
+deriving (Foo) via (Const Identity)
+deriving (Foo,
+   Bar) via (Const Identity)
+
+
+
+--
 -- infix operators
 --
    a a = (+) a 2
