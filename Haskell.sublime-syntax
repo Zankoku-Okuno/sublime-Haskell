@@ -7,16 +7,12 @@ file_extensions:
 scope: source.haskell
 contexts:
   main:
-    - match: "(`)[a-zA-Z_']*?(`)"
+    - match: "(`)(?:[A-Z][[:alnum:]_]*\\.)*[[:alpha:]_][[:alnum:]_']*?(`)"
       comment: "In case this regex seems unusual for an infix operator, note that Haskell allows any ordinary function application (elem 4 [1..10]) to be rewritten as an infix expression (4 `elem` [1..10])."
       scope: keyword.operator.function.infix.haskell
       captures:
         1: punctuation.definition.entity.haskell
         2: punctuation.definition.entity.haskell
-    - match: \(\)
-      scope: constant.language.unit.haskell
-    - match: '\[\]'
-      scope: constant.language.empty-list.haskell
     - match: \b(module)\b
       captures:
         1: keyword.other.haskell
@@ -39,8 +35,6 @@ contexts:
           captures:
             1: keyword.other.haskell
           pop: true
-        - match: \b(Mon(ad|oid)|Functor|Applicative|(Folda|Traversa)ble|Eq|Ord|Read|Show|Num|(Frac|Ra)tional|Enum|Bounded|Real(Frac|Float)?|Integral|Floating)\b
-          scope: support.class.prelude.haskell
         - match: "[A-Z][A-Za-z_']*"
           scope: entity.other.inherited-class.haskell
         - match: '\b[a-z][a-zA-Z0-9_'']*\b'
@@ -246,5 +240,5 @@ contexts:
     - match: '\b[A-Z][a-zA-Z0-9_'']*\b'
       scope: storage.type.haskell
     - match: \(\)
-      scope: support.constant.unit.haskell
+      scope: storage.type.haskell
     - include: comments

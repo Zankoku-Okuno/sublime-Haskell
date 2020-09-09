@@ -108,3 +108,19 @@
 --     ^ keyword.operator.haskell
 --       ^^^ entity.name.function.infix.haskell
 --             ^ constant.numeric.haskell
+
+   a a = 2 `add` 2
+--     ^ keyword.operator.haskell
+--         ^   ^ punctuation.definition.entity.haskell
+--          ^^^  keyword.operator.function.infix.haskell
+
+   a a = 2 `add1` 2
+--     ^ keyword.operator.haskell
+--         ^    ^ punctuation.definition.entity.haskell
+--          ^^^^  keyword.operator.function.infix.haskell
+
+
+   a a = 2 `Int.add` 2
+--     ^ keyword.operator.haskell
+--         ^       ^ punctuation.definition.entity.haskell
+--          ^^^^^^^  keyword.operator.function.infix.haskell
